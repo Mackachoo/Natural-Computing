@@ -7,7 +7,7 @@ def createInitials(N):
     initials = []
     for i in range(N):
         initials.append(r.sample(range(1,8),(r.randint(1,6))))
-    return initial
+    return initials
 
     
 def mutate(nw, mR):
@@ -46,9 +46,11 @@ def scores(nws):
     return dict(nws,nwSc)
 
 
-def selection(scored, pairs):
+def selection(scored, pairs, elitism =True):
     selected = []
-    for i in range(2*pairs):
+    if elitism:
+        selected.append(max(scored))
+    while len(selected) <= 2*pairs:
         rInt = r.random()
         for nw in scored:
             if scored[nw] > rInt:
@@ -59,19 +61,21 @@ def selection(scored, pairs):
 
 ### Constants ----------------------------------------------------------------------------
 
-cRate = 0.5
-mRate = 0.01
-Iterations = 10
-NumInitials = 100
-
+crossoverRate = 0.5
+mutationRate = 0.01
+iterations = 10
+numInitials = 100
+survivalRate = 0.25
 
 ### Program ------------------------------------------------------------------------------
 
-networkSet = createInitials(NumInitials)
-for i in range(Iterations):
-    selected = selection(scores(networkSet), 2)
+networkSet = createInitials(numInitials)
+for i in range(iterations):
+    selected = selection(scores(networkSet), int(len(networkSet)*survivalRate))
     networkSet = []
     for pair in range(len(selected)//2):
-        nwP1, nwP2 = crossover(selected[2*pair], selected[2*pair+1], cRate)
-        networkSet.append(mutate(nwP1, mRate))
-        networkSet.append(mutate(nwP2, mRate))
+        nwP1, nwP2 = crossover(selected[2*pair], selected[2*pair+1], crossoverRate)
+        networkSet.append(mutate(nwP1, mutationRate))
+        networkSet.append(mutate(nwP2, mutationRate))
+
+print(networkSet)
