@@ -1,6 +1,7 @@
 import numpy as np
 import random as r
 
+
 ### Functions ----------------------------------------------------------------------------
 
 def createInitials(N):
@@ -58,6 +59,11 @@ def selection(scored, pairs, elitism =True):
     return selected
 
 
+def converged(scored, variance):
+    scoreSquares = [x[1]**2 for x in scored]
+    return sum(scoreSquares)/len(scoreSquares) < variance
+
+
 ### Constants ----------------------------------------------------------------------------
 
 crossoverRate = 0.5
@@ -65,13 +71,17 @@ mutationRate = 0.01
 iterations = 10
 numInitials = 100
 survivalRate = 0.25
+variance = 0.3
 
 ### Program ------------------------------------------------------------------------------
 
 networkSet = createInitials(numInitials)
 for _ in range(iterations):
-    print(len(networkSet))
-    selected = selection(scores(networkSet), int(len(networkSet)*survivalRate))
+    scored = scores(networkSet)
+    if converged(scored, variance):
+        print("Converged")
+        break
+    selected = selection(scored, int(len(networkSet)*survivalRate))
     networkSet = []
     for pair in range(len(selected)//2):
         for _ in range(int(0.5/survivalRate)):
