@@ -1,5 +1,7 @@
 import numpy as np
 import random as r
+from sklearn.neural_network import MLPClassifier
+from sklearn.model_selection import train_test_split as testSplit
 
 
 ### Functions ----------------------------------------------------------------------------
@@ -37,10 +39,21 @@ def crossover(nw1, nw2, cR):
     return [x for x in nw1 if x != 0], [x for x in nw2 if x != 0]
 
 
-def scores(nws):
+def scores(nws, data, type='linear'):
     nwSc = []
+    if type == 'square':
+        pos = np.concatenate((data[:,0:2],data[:,0:2]**2), axis=1)
+    elif type == 'sin':
+        pos = np.concatenate((data[:,0:2],np.sin(data[:,0:2])), axis=1)
+        print(pos)
+    else:
+        pos = data[:,0:2]
+    posTrain, posTest, valueTrain, valueTest = testSplit(pos,data[:,2], test_size=0.5)
+    posTrain, posTest, valueTrain, valueTest = np.array(posTrain), np.array(posTest), np.array([int(x) for x in valueTrain]), np.array([int(x) for x in valueTest])
     for nw in nws:
-        nwSc.append(r.randint(0,100))
+        mlp = MLPClassifier(nw, max_iter=3, solver='lbfgs', random_state=0, activation='tanh')
+        mlp.fit(posTrain,valueTrain)
+        nwSc.append(mlp.score(posTest, valueTest))
     nwSc = np.array(nwSc)
     nwSc = list(np.cumsum(nwSc/np.sum(nwSc)))
     return list(zip(nws,nwSc))
@@ -72,12 +85,13 @@ iterations = 10
 numInitials = 100
 survivalRate = 0.25
 variance = 0.3
+data = np.loadtxt(open("two_spirals.dat"))
 
 ### Program ------------------------------------------------------------------------------
 
 networkSet = createInitials(numInitials)
 for _ in range(iterations):
-    scored = scores(networkSet)
+    scored = scores(networkSet, data, 'sin')
     if converged(scored, variance):
         print("Converged")
         break
