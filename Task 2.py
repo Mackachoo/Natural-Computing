@@ -46,7 +46,7 @@ def scores(nws):
     return list(zip(nws,nwSc))
 
 
-def selection(scored, pairs, elitism =True):
+def selection(scored, pairs, elitism=True):
     selected = []
     if elitism:
         selected.append(max(scored)[0])
