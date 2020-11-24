@@ -1,13 +1,14 @@
 import numpy as np
 import random as r
 
+
 ### Functions ----------------------------------------------------------------------------
 
 def createInitials(N):
     initials = []
-    for i in range(N):
+    for _ in range(N):
         initials.append(r.sample(range(1,8),(r.randint(1,6))))
-    return initial
+    return initials
 
     
 def mutate(nw, mR):
@@ -25,7 +26,6 @@ def mutate(nw, mR):
 def crossover(nw1, nw2, cR):
     for i in range(max(len(nw1),len(nw2))):
         if r.random() <= cR:
-            print(i)
             if len(nw1) <= i:
                 nw1.append(nw2[i])
                 nw2[i] = 0
@@ -43,35 +43,50 @@ def scores(nws):
         nwSc.append(r.randint(0,100))
     nwSc = np.array(nwSc)
     nwSc = list(np.cumsum(nwSc/np.sum(nwSc)))
-    return dict(nws,nwSc)
+    return list(zip(nws,nwSc))
 
 
-def selection(scored, pairs):
+def selection(scored, pairs, elitism =True):
     selected = []
-    for i in range(2*pairs):
+    if elitism:
+        selected.append(max(scored)[0])
+    while len(selected) <= 2*pairs:
         rInt = r.random()
-        for nw in scored:
-            if scored[nw] > rInt:
-                selected.append(nw)
+        for obj in scored:
+            if obj[1] > rInt:
+                selected.append(obj[0])
                 break
     return selected
 
 
+def converged(scored, variance):
+    scoreSquares = [x[1]**2 for x in scored]
+    return sum(scoreSquares)/len(scoreSquares) < variance
+
+
 ### Constants ----------------------------------------------------------------------------
 
-cRate = 0.5
-mRate = 0.01
-Iterations = 10
-NumInitials = 100
-
+crossoverRate = 0.5
+mutationRate = 0.01
+iterations = 10
+numInitials = 100
+survivalRate = 0.25
+variance = 0.3
 
 ### Program ------------------------------------------------------------------------------
 
-networkSet = createInitials(NumInitials)
-for i in range(Iterations):
-    selected = selection(scores(networkSet), 2)
+networkSet = createInitials(numInitials)
+for _ in range(iterations):
+    scored = scores(networkSet)
+    if converged(scored, variance):
+        print("Converged")
+        break
+    selected = selection(scored, int(len(networkSet)*survivalRate))
     networkSet = []
     for pair in range(len(selected)//2):
-        nwP1, nwP2 = crossover(selected[2*pair], selected[2*pair+1], cRate)
-        networkSet.append(mutate(nwP1, mRate))
-        networkSet.append(mutate(nwP2, mRate))
+        for _ in range(int(0.5/survivalRate)):
+            nwP1, nwP2 = crossover(selected[2*pair], selected[2*pair+1], crossoverRate)
+            networkSet.append(mutate(nwP1, mutationRate))
+            networkSet.append(mutate(nwP2, mutationRate))
+
+print(networkSet)
