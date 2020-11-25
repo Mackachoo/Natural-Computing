@@ -1,5 +1,6 @@
 import numpy as np
 import random as r
+from time import time
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split as testSplit
 import warnings
@@ -59,23 +60,23 @@ def scores(nws, data, type='linear'):
             warnings.filterwarnings('ignore', category=ConvergenceWarning, module='sklearn')
             mlp = MLPClassifier(nw, max_iter=3, solver='lbfgs', random_state=0, activation='tanh')
             mlp.fit(posTrain,valueTrain)
+            #print(nw, mlp.score(posTest, valueTest))
             nwSc.append(mlp.score(posTest, valueTest))
-    nwSc = np.array(nwSc)
-    cnwSc = list(np.cumsum(nwSc/np.sum(nwSc)))
-    nwSc = list(nwSc/np.sum(nwSc))
-    return list(zip(nws,nwSc)), list(zip(nws,cnwSc))
+    #print("End-------")
+    return list(zip(nws,nwSc))
 
 
 def selection(scored, pairs, elitism=True):
-    selected = [x[0] for x in scored]
+    sortScores = sorted(scored, key=lambda scored: scored[1])
+    roulette = []
+    for i in range(len(sortScores)):
+        for _ in range(i):
+            roulette.append(sortScores[i][0])
+    selected = []
     if elitism:
-        selected.insert(0,max(scored)[0])
-    while len(selected) > 2*pairs:
-        rInt = r.random()
-        for n in range(len(selected)):
-            if scored[n][1] > rInt and n != 0:
-                selected.pop(n)
-                break
+        selected.append(roulette[-1])
+    while len(selected) <= 2*pairs:
+        selected.append(r.choice(roulette))
     #print(selected, pairs,'select')
     return selected
 
@@ -87,8 +88,8 @@ def varianceCalc(scored):
 
 ### Constants ----------------------------------------------------------------------------
 
-crossoverRate = 0.2
-mutationRate = 0.1
+crossoverRate = 0.5
+mutationRate = 0.01
 iterations = 100
 numInitials = 8
 survivalRate = 0.25
@@ -102,20 +103,20 @@ networkSet = createInitials(numInitials)
 varList = []
 scoreList = []
 nwSets = [networkSet]
-print(networkSet)
+#print(networkSet)
 
 
 ### Program ------------------------------------------------------------------------------
 
 for _ in tqdm(range(iterations)):
-    scored, cScored = scores(networkSet, data, 'sin')
+    scored = scores(networkSet, data, 'sin')
     scoreList.append([x[1] for x in scored])
     curVar = varianceCalc(scored)
     varList.append(curVar)
     if curVar < variance:
         print("Converged", curVar)
         break
-    selected = selection(cScored, int(len(networkSet)*survivalRate))
+    selected = selection(scored, int(len(networkSet)*survivalRate))
     networkSet = []
     for pair in range(len(selected)//2):
         for _ in range(int(0.5/survivalRate)):
@@ -123,7 +124,7 @@ for _ in tqdm(range(iterations)):
             networkSet.append(mutate(nwP1, mutationRate))
             networkSet.append(mutate(nwP2, mutationRate))
     nwSets.append(networkSet)
-#print('\n',networkSet)
+print('\n',networkSet)
 
 
 ### Graphs --------------------------------------------------------------------------------
@@ -171,8 +172,8 @@ def Graphs3D(type=0, snap=True):
                 for n in nw:
                     count += 1
                     x = np.arange(0, len(n))
-                    ax.set_xlabel('Layer Number')
-                    ax.set_ylabel('Population')
+                    ax.set_xlabel('Population')
+                    ax.set_ylabel('Layer Number')
                     ax.set_zlabel('Layer Depth')
                     ax.bar(n,x,count, zdir='x')
                     plt.pause(0.01)
@@ -181,12 +182,15 @@ def Graphs3D(type=0, snap=True):
                 break
             angle += 1
             #ax.view_init(30, 0)
-            plt.pause(0.1)
+            #plt.pause(0.1)
             cam.snap()
 
     if snap:
         anim = cam.animate()
-        anim.save('new.gif', writer='Pillow', fps=10, runTotal=len(nwSets))
+        try:
+            anim.save('new.gif', writer='Pillow', fps=10, runTotal=len(nwSets))
+        except:
+            anim.save('new.gif', writer='Pillow', fps=10)
     plt.show()
 
 
@@ -201,5 +205,5 @@ def Graphs2D(type=0):
     plt.show()
 
 #Graphs2D()
-Graphs3D(1, False)
-
+Graphs3D(0, True)
+#print(np.array(scoreList))
