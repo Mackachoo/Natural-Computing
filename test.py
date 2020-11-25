@@ -1,3 +1,12 @@
+import time
+import sys
 import numpy as np
-import matplotlib.pyplot as plt
-from sklearn.neural_network import MLPClassifier
+
+
+X = np.arange(-5, 5, 0.25)
+Y = np.arange(-5, 5, 0.25)
+X, Y = np.meshgrid(X, Y)
+R = np.sqrt(X**2 + Y**2)
+Z = np.sin(R)
+
+print(X)

@@ -2,6 +2,11 @@ import numpy as np
 import random as r
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split as testSplit
+import warnings
+from sklearn.exceptions import ConvergenceWarning
+from tqdm import tqdm
+import matplotlib.pyplot as plt
+from celluloid import Camera
 
 
 ### Functions ----------------------------------------------------------------------------
@@ -45,62 +50,156 @@ def scores(nws, data, type='linear'):
         pos = np.concatenate((data[:,0:2],data[:,0:2]**2), axis=1)
     elif type == 'sin':
         pos = np.concatenate((data[:,0:2],np.sin(data[:,0:2])), axis=1)
-        print(pos)
     else:
         pos = data[:,0:2]
     posTrain, posTest, valueTrain, valueTest = testSplit(pos,data[:,2], test_size=0.5)
-    posTrain, posTest, valueTrain, valueTest = np.array(posTrain), np.array(posTest), np.array([int(x) for x in valueTrain]), np.array([int(x) for x in valueTest])
+    posTrain, posTest, valueTrain, valueTest = np.array(posTrain), np.array(posTest), np.array([int(x) for x in valueTrain]), np.array([int(x) for x in valueTest])    
     for nw in nws:
-        mlp = MLPClassifier(nw, max_iter=3, solver='lbfgs', random_state=0, activation='tanh')
-        mlp.fit(posTrain,valueTrain)
-        nwSc.append(mlp.score(posTest, valueTest))
+        with warnings.catch_warnings():
+            warnings.filterwarnings('ignore', category=ConvergenceWarning, module='sklearn')
+            mlp = MLPClassifier(nw, max_iter=3, solver='lbfgs', random_state=0, activation='tanh')
+            mlp.fit(posTrain,valueTrain)
+            nwSc.append(mlp.score(posTest, valueTest))
     nwSc = np.array(nwSc)
-    nwSc = list(np.cumsum(nwSc/np.sum(nwSc)))
-    return list(zip(nws,nwSc))
+    cnwSc = list(np.cumsum(nwSc/np.sum(nwSc)))
+    nwSc = list(nwSc/np.sum(nwSc))
+    return list(zip(nws,nwSc)), list(zip(nws,cnwSc))
 
 
 def selection(scored, pairs, elitism=True):
-    selected = []
+    selected = [x[0] for x in scored]
     if elitism:
-        selected.append(max(scored)[0])
-    while len(selected) <= 2*pairs:
+        selected.insert(0,max(scored)[0])
+    while len(selected) > 2*pairs:
         rInt = r.random()
-        for obj in scored:
-            if obj[1] > rInt:
-                selected.append(obj[0])
+        for n in range(len(selected)):
+            if scored[n][1] > rInt and n != 0:
+                selected.pop(n)
                 break
+    #print(selected, pairs,'select')
     return selected
 
 
-def converged(scored, variance):
+def varianceCalc(scored):
     scoreSquares = [x[1]**2 for x in scored]
-    return sum(scoreSquares)/len(scoreSquares) < variance
+    return sum(scoreSquares)/len(scoreSquares)
 
 
 ### Constants ----------------------------------------------------------------------------
 
-crossoverRate = 0.5
-mutationRate = 0.01
-iterations = 10
-numInitials = 100
+crossoverRate = 0.2
+mutationRate = 0.1
+iterations = 100
+numInitials = 8
 survivalRate = 0.25
-variance = 0.3
+variance = 0.001
 data = np.loadtxt(open("two_spirals.dat"))
+
+
+### Output -------------------------------------------------------------------------------
+
+networkSet = createInitials(numInitials)
+varList = []
+scoreList = []
+nwSets = [networkSet]
+print(networkSet)
+
 
 ### Program ------------------------------------------------------------------------------
 
-networkSet = createInitials(numInitials)
-for _ in range(iterations):
-    scored = scores(networkSet, data, 'sin')
-    if converged(scored, variance):
-        print("Converged")
+for _ in tqdm(range(iterations)):
+    scored, cScored = scores(networkSet, data, 'sin')
+    scoreList.append([x[1] for x in scored])
+    curVar = varianceCalc(scored)
+    varList.append(curVar)
+    if curVar < variance:
+        print("Converged", curVar)
         break
-    selected = selection(scored, int(len(networkSet)*survivalRate))
+    selected = selection(cScored, int(len(networkSet)*survivalRate))
     networkSet = []
     for pair in range(len(selected)//2):
         for _ in range(int(0.5/survivalRate)):
             nwP1, nwP2 = crossover(selected[2*pair], selected[2*pair+1], crossoverRate)
             networkSet.append(mutate(nwP1, mutationRate))
             networkSet.append(mutate(nwP2, mutationRate))
+    nwSets.append(networkSet)
+#print('\n',networkSet)
 
-print(networkSet)
+
+### Graphs --------------------------------------------------------------------------------
+
+def Graphs3D(type=0, snap=True):
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+
+    cam = Camera(fig)
+    size = 10
+    angle = 0
+
+    if type == 2:
+        ax.view_init(30, 120)
+        ax.set_xlim3d(0, len(scoreList))
+        ax.set_ylim3d(0, len(scoreList[0]))
+        ax.set_zlim3d(0, )
+        for xS in range(len(scoreList)):
+            for yS in range(len(scoreList[xS])):
+                z = [x[yS] for x in scoreList[:xS+1]]
+                #print(len(x[:xS+1]), len(y[:xS+1]), len(z))
+                ax.plot(np.arange(xS+1), np.ones(xS+1)*yS, z)
+            if xS != 0:
+                plt.pause(0.1)
+                pass
+            cam.snap()
+    else:
+        for nw in tqdm(nwSets):
+            ax.view_init(30, 120)
+            if type == 0:
+                X = np.arange(0, size)
+                Y = np.arange(0, size)
+                X, Y = np.meshgrid(X, Y)
+                Z = np.zeros((size,size))
+                for x in range(size):
+                    for y in range(size):
+                        try:
+                            Z[x,y] = nw[x][y]
+                        except:
+                            pass
+                ax.plot_surface(X, Y, Z)
+            elif type == 1:
+                ax.view_init(30, 60)
+                count = 0
+                for n in nw:
+                    count += 1
+                    x = np.arange(0, len(n))
+                    ax.set_xlabel('Layer Number')
+                    ax.set_ylabel('Population')
+                    ax.set_zlabel('Layer Depth')
+                    ax.bar(n,x,count, zdir='x')
+                    plt.pause(0.01)
+            else:
+                print("Invalid Type")
+                break
+            angle += 1
+            #ax.view_init(30, 0)
+            plt.pause(0.1)
+            cam.snap()
+
+    if snap:
+        anim = cam.animate()
+        anim.save('new.gif', writer='Pillow', fps=10, runTotal=len(nwSets))
+    plt.show()
+
+
+def Graphs2D(type=0):
+    if type == 0:
+        x = np.arange(len(varList))
+        plt.xlabel("Iterations")
+        plt.ylabel("Variance")
+        plt.plot(x, varList)
+    else:
+        print("Invalid Type")
+    plt.show()
+
+#Graphs2D()
+Graphs3D(1, False)
+
