@@ -64,7 +64,7 @@ def crossover(nw1, nw2, cR):
     return [x for x in nw1 if x != 0], [x for x in nw2 if x != 0]
 
 
-def scores(nws, type='lin', maxIt=3):
+def scores(nws, type='lin', maxIt):
     nwSc = []
     posTrain, valueTrain = createTestSpirals(1000,type)
     posTest, valueTest = createTestSpirals(1000,type)
@@ -77,7 +77,7 @@ def scores(nws, type='lin', maxIt=3):
     return list(zip(nws,nwSc))
 
 
-def selection(scored, pairs, elitism=True):
+def selection(scored, pairs, elitism):
     sortScores = sorted(scored, key=lambda scored: scored[1])
     roulette = []
     for i in range(len(sortScores)):
@@ -107,7 +107,7 @@ def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=1000, 
     for _ in tqdm(range(iterations)):
         scored = scores(networkSet, MLPtype, maxMLPit)
         scoreList.append([x[1] for x in scored])
-        selected = selection(scored, int(len(networkSet)*survivalRate))
+        selected = selection(scored, int(len(networkSet)*survivalRate), elitism)
         networkSet = []
         for pair in range(len(selected)//2):
             for _ in range(int(0.5/survivalRate)):
