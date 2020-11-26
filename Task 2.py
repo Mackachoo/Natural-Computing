@@ -64,7 +64,7 @@ def crossover(nw1, nw2, cR):
     return [x for x in nw1 if x != 0], [x for x in nw2 if x != 0]
 
 
-def scores(nws, type='lin', maxIt):
+def scores(nws, maxIt, type='lin'):
     nwSc = []
     posTrain, valueTrain = createTestSpirals(1000,type)
     posTest, valueTest = createTestSpirals(1000,type)
@@ -86,8 +86,23 @@ def selection(scored, pairs, elitism):
     selected = []
     if elitism:
         selected.append(roulette[-1])
-    while len(selected) <= 2*pairs:
+    while len(selected) < 2*pairs:
         selected.append(r.choice(roulette))
+    return selected
+
+def oldSelection(scored, pairs, elitism):
+    sortScores = sorted(scored, key=lambda scored: scored[1])
+    nws = [x[0] for x in sortScores]
+    val = np.cumsum(np.array([x[1] for x in sortScores]))
+    selected = []
+    if elitism:
+        selected.append(sortScores[-1][0])
+    while len(selected) < 2*pairs:
+        rInt = r.random()*sortScores[-1][1]
+        for i in range(len(nws)):
+            if rInt < val[i]:
+                selected.append(nws[i])
+                break
     return selected
 
 
@@ -98,16 +113,19 @@ def varianceCalc(scored):
 
 ### Main Program -------------------------------------------------------------------------
 
-def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=1000, survivalRate=0.5, elitism=True, maxMLPit=1, MLPtype='square'):
+def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=1000, survivalRate=0.5, elitism=True, maxMLPit=1, MLPtype='square',  oldSelect=False):
     #log = "LOG FILE -------------------\n\n"
     networkSet = createInitials(numInitials)
     scoreList = []
     nwSets = [networkSet]
 
     for _ in tqdm(range(iterations)):
-        scored = scores(networkSet, MLPtype, maxMLPit)
+        scored = scores(networkSet, maxMLPit, MLPtype)
         scoreList.append([x[1] for x in scored])
-        selected = selection(scored, int(len(networkSet)*survivalRate), elitism)
+        if oldSelect:
+            selected = oldSelection(scored, int(len(networkSet)*survivalRate), elitism)
+        else:
+            selected = selection(scored, int(len(networkSet)*survivalRate), elitism)
         networkSet = []
         for pair in range(len(selected)//2):
             for _ in range(int(0.5/survivalRate)):
@@ -116,14 +134,14 @@ def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=1000, 
                 networkSet.append(mutate(nwP2, mutationRate))
         nwSets.append(networkSet)
 
-    #log += "\nOut lists -------\n\nNetwork list : "+str(nwSets)+"\n\nScores List : "+str(scoreList)+"\n"
+    #log += "\nOut lists -------\n\nNetwork list ~: "+str(nwSets)+"\n\nScores List : "+str(scoreList)+"\n"
     #logFile = open("logFiles/log"+str(t.time())+"s.txt",'w')
     #logFile.write(log)
     #logFile.close()
 
     return {'nwSets':nwSets, 'scoreList':scoreList}
 
-#run = main()
-#print(run['nwSets'][0])
-#print(run['scoreList'][0])
+#run = main(oldSelect=True, numInitials=100)
+#print(run['nwSets'])
+#print(run['scoreList'])
 
