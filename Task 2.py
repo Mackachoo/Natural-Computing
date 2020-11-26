@@ -45,8 +45,8 @@ def mutate(nw, mR):
                 nw[i] += 1
             else:
                 nw[i] -= 1
-    #if r.random() <= mR and r.random() > 0.5:
-    #    nw.append(1)
+    if r.random() <= mR and r.random() > 0.5:
+        nw.append(1)
     return [x for x in nw if x != 0]
 
 
@@ -98,8 +98,8 @@ def varianceCalc(scored):
 
 ### Main Program -------------------------------------------------------------------------
 
-def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=50, survivalRate=0.5, elitism=True, maxMLPit=3, MLPtype='square'):
-    log = "LOG FILE -------------------\n\n"
+def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=1000, survivalRate=0.5, elitism=True, maxMLPit=1, MLPtype='square'):
+    #log = "LOG FILE -------------------\n\n"
     networkSet = createInitials(numInitials)
     scoreList = []
     nwSets = [networkSet]
@@ -116,10 +116,14 @@ def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=50, su
                 networkSet.append(mutate(nwP2, mutationRate))
         nwSets.append(networkSet)
 
-    log += "\nOut lists -------\n\nNetwork list : "+str(nwSets)+"\n\nScores List : "+str(scoreList)+"\n"
-    logFile = open("logFiles/log"+str(t.time())+"s.txt",'w')
-    logFile.write(log)
-    logFile.close()
+    #log += "\nOut lists -------\n\nNetwork list : "+str(nwSets)+"\n\nScores List : "+str(scoreList)+"\n"
+    #logFile = open("logFiles/log"+str(t.time())+"s.txt",'w')
+    #logFile.write(log)
+    #logFile.close()
 
-    return {'finalNW':networkSet, 'nwSets':nwSets, 'scoreList':scoreList}
+    return {'nwSets':nwSets, 'scoreList':scoreList}
+
+#run = main()
+#print(run['nwSets'][0])
+#print(run['scoreList'][0])
 
