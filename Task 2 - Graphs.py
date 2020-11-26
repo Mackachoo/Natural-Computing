@@ -82,7 +82,25 @@ def Graphs2D(scoreList=None, type=0):
         print("Invalid Type")
     plt.show()
 
-output = task.main()
+#outDefault = task.main()
+#Graphs3D(nwSets=outDefault['nwSets'], type=1, snap=True)
 
-Graphs2D(output['scoreList'])
-Graphs3D(nwSets=output['nwSets'], type=1, snap=False)
+fig = plt.figure(figsize=plt.figaspect(1.0))
+ax = fig.add_subplot(111)
+
+outLin = task.main(MLPtype='lin')
+outSin = task.main(MLPtype='sin')
+outSqu = task.main(MLPtype='squ')
+outSqSi = task.main(MLPtype='sinsqu')
+
+iteration = np.arange(50)
+ax.set_ylim(0,1.01)
+ax.set_ylabel('Score')
+ax.set_xlabel('Iteration')
+ax.plot(iteration, [sum(x)/len(x) for x in outLin['scoreList']], label="Linear")
+ax.plot(iteration, [sum(x)/len(x) for x in outSqu['scoreList']], label="Square")
+ax.plot(iteration, [sum(x)/len(x) for x in outSin['scoreList']], label="Sine")
+ax.plot(iteration, [sum(x)/len(x) for x in outSqSi['scoreList']], label="Square+Sine")
+ax.legend(loc='best')
+plt.show()
+plt.savefig('figures/Average Scores.png', transparent=True)
