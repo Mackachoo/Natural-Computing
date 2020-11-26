@@ -1,6 +1,6 @@
 import numpy as np
 import random as r
-from time import time
+import time as t
 from sklearn.neural_network import MLPClassifier
 from sklearn.model_selection import train_test_split as testSplit
 import warnings
@@ -18,7 +18,28 @@ def createInitials(N):
         initials.append(r.sample(range(1,8),(r.randint(1,6))))
     return initials
 
-    
+
+def createTestSpirals(n, type='lin'):
+    p = (720)*np.sqrt(np.random.rand(n//2,1))*(np.pi)/180
+    posX = -p*np.cos(p) + np.random.rand(n//2,1)
+    posY = p*np.sin(p) + np.random.rand(n//2,1)
+    PosP = (posX, posY)
+    PosN = (-posX, -posY)
+
+    if 'sin' in type:
+        sinPosX, sinPosY = np.sin(posX), np.sin(posY)
+        PosP += (sinPosX, sinPosY)
+        PosN += (-sinPosX, -sinPosY)       
+    if 'squ' in type:
+        squPosX, squPosY = posX**2, posY**2
+        PosP += (squPosX, squPosY)
+        PosN += (-squPosX, -squPosY)
+
+    positions = np.vstack((np.hstack(PosP),np.hstack(PosN)))
+    values = np.hstack((np.zeros(n//2),np.ones(n//2))).astype(int)
+    return (positions, values)
+
+
 def mutate(nw, mR):
     for i in range(len(nw)):
         if r.random() <= mR:
@@ -26,8 +47,8 @@ def mutate(nw, mR):
                 nw[i] += 1
             else:
                 nw[i] -= 1
-    if r.random() <= mR:
-        nw.append(1)
+    #if r.random() <= mR and r.random() > 0.5:
+    #    nw.append(1)
     return [x for x in nw if x != 0]
 
 
@@ -45,22 +66,15 @@ def crossover(nw1, nw2, cR):
     return [x for x in nw1 if x != 0], [x for x in nw2 if x != 0]
 
 
-def scores(nws, data, type='linear'):
+def scores(nws, data, type='lin'):
     nwSc = []
-    if type == 'square':
-        pos = np.concatenate((data[:,0:2],data[:,0:2]**2), axis=1)
-    elif type == 'sin':
-        pos = np.concatenate((data[:,0:2],np.sin(data[:,0:2])), axis=1)
-    else:
-        pos = data[:,0:2]
-    posTrain, posTest, valueTrain, valueTest = testSplit(pos,data[:,2], test_size=0.5)
-    posTrain, posTest, valueTrain, valueTest = np.array(posTrain), np.array(posTest), np.array([int(x) for x in valueTrain]), np.array([int(x) for x in valueTest])    
+    posTrain, valueTrain = createTestSpirals(1000,type)
+    posTest, valueTest = createTestSpirals(1000,type)
     for nw in nws:
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=ConvergenceWarning, module='sklearn')
             mlp = MLPClassifier(nw, max_iter=3, solver='lbfgs', random_state=0, activation='tanh')
             mlp.fit(posTrain,valueTrain)
-            #print(nw, mlp.score(posTest, valueTest))
             nwSc.append(mlp.score(posTest, valueTest))
     #print("End-------")
     return list(zip(nws,nwSc))
@@ -77,7 +91,6 @@ def selection(scored, pairs, elitism=True):
         selected.append(roulette[-1])
     while len(selected) <= 2*pairs:
         selected.append(r.choice(roulette))
-    #print(selected, pairs,'select')
     return selected
 
 
@@ -88,17 +101,18 @@ def varianceCalc(scored):
 
 ### Constants ----------------------------------------------------------------------------
 
-crossoverRate = 0.5
+crossoverRate = 0.7
 mutationRate = 0.01
-iterations = 100
-numInitials = 8
-survivalRate = 0.25
+iterations = 50
+numInitials = 50
+survivalRate = 0.5
 variance = 0.001
 data = np.loadtxt(open("two_spirals.dat"))
 
 
 ### Output -------------------------------------------------------------------------------
 
+log = "LOG FILE -------------------\n\n\n"
 networkSet = createInitials(numInitials)
 varList = []
 scoreList = []
@@ -109,7 +123,7 @@ nwSets = [networkSet]
 ### Program ------------------------------------------------------------------------------
 
 for _ in tqdm(range(iterations)):
-    scored = scores(networkSet, data, 'sin')
+    scored = scores(networkSet, data, 'square')
     scoreList.append([x[1] for x in scored])
     curVar = varianceCalc(scored)
     varList.append(curVar)
@@ -124,7 +138,12 @@ for _ in tqdm(range(iterations)):
             networkSet.append(mutate(nwP1, mutationRate))
             networkSet.append(mutate(nwP2, mutationRate))
     nwSets.append(networkSet)
-print('\n',networkSet)
+print('\nResults:',networkSet, '\n')
+
+log += "\nOut lists -------\n\nNetwork list : "+str(nwSets)+"\n\nScores List : "+str(scoreList)+"\n"
+logFile = open("logFiles/log"+str(t.time())+"s.txt",'w')
+logFile.write(log)
+logFile.close()
 
 
 ### Graphs --------------------------------------------------------------------------------
@@ -137,23 +156,22 @@ def Graphs3D(type=0, snap=True):
     size = 10
     angle = 0
 
-    if type == 2:
-        ax.view_init(30, 120)
-        ax.set_xlim3d(0, len(scoreList))
-        ax.set_ylim3d(0, len(scoreList[0]))
-        ax.set_zlim3d(0, )
-        for xS in range(len(scoreList)):
-            for yS in range(len(scoreList[xS])):
-                z = [x[yS] for x in scoreList[:xS+1]]
-                #print(len(x[:xS+1]), len(y[:xS+1]), len(z))
-                ax.plot(np.arange(xS+1), np.ones(xS+1)*yS, z)
-            if xS != 0:
-                plt.pause(0.1)
-                pass
-            cam.snap()
-    else:
+    if type == 2:                   # Score Line
+       ax.view_init(30, 120)
+       ax.set_xlim3d(0, len(scoreList))
+       ax.set_ylim3d(0, len(scoreList[0]))
+       for xS in range(len(scoreList)):
+           for yS in range(len(scoreList[xS])):
+               z = [x[yS] for x in scoreList[:xS+1]]
+               #print(len(x[:xS+1]), len(y[:xS+1]), len(z))
+               ax.plot(np.arange(xS+1), np.ones(xS+1)*yS, z)
+           if xS != 0:
+               plt.pause(0.1)
+               pass
+           cam.snap()
+    else:                           # Surface and Bar Chart
         for nw in tqdm(nwSets):
-            ax.view_init(30, 120)
+            ax.view_init(30, 80)
             if type == 0:
                 X = np.arange(0, size)
                 Y = np.arange(0, size)
@@ -175,8 +193,8 @@ def Graphs3D(type=0, snap=True):
                     ax.set_xlabel('Population')
                     ax.set_ylabel('Layer Number')
                     ax.set_zlabel('Layer Depth')
-                    ax.bar(n,x,count, zdir='x')
-                    plt.pause(0.01)
+                    ax.bar(x,n,count, zdir='x')
+                    #plt.pause(0.01)
             else:
                 print("Invalid Type")
                 break
@@ -188,9 +206,9 @@ def Graphs3D(type=0, snap=True):
     if snap:
         anim = cam.animate()
         try:
-            anim.save('new.gif', writer='Pillow', fps=10, runTotal=len(nwSets))
+            anim.save("imageOut/anim"+str(r.randint(0,100))+".gif", writer='Pillow', fps=10, runTotal=len(nwSets))
         except:
-            anim.save('new.gif', writer='Pillow', fps=10)
+            anim.save("imageOut/anim"+str(r.randint(0,100))+".gif", writer='Pillow', fps=10)
     plt.show()
 
 
@@ -200,10 +218,17 @@ def Graphs2D(type=0):
         plt.xlabel("Iterations")
         plt.ylabel("Variance")
         plt.plot(x, varList)
+    elif type == 1:
+        x = np.arange(len(varList))
+        plt.ylim(0,1)
+        plt.xlabel("Iterations")
+        plt.ylabel("Average Score")
+        plt.plot(x, [sum(x)/len(x) for x in scoreList])
     else:
         print("Invalid Type")
     plt.show()
 
-#Graphs2D()
-Graphs3D(0, True)
+Graphs2D(1)
+#Graphs3D(1, True)
+#Graphs3D(2, False)
 #print(np.array(scoreList))
