@@ -2,6 +2,7 @@ import matplotlib.pyplot as plt
 from celluloid import Camera
 import numpy as np
 from tqdm import tqdm
+import random as r
 task = __import__("Task 2")
 
 
@@ -83,25 +84,30 @@ def Graphs2D(scoreList=None, type=0):
     plt.show()
 
 
-#outDefault = task.main()
+outDefault = task.main()
 #Graphs3D(nwSets=outDefault['nwSets'], scoreList=outDefault['scoreList'], type=1, snap=True)
-#Graphs2D(scoreList=outDefault['scoreList'])
+Graphs2D(scoreList=outDefault['scoreList'])
 
-fig = plt.figure(figsize=(20,10))
+fig = plt.figure(figsize=(10,5))
 ax = fig.add_subplot(111)
-outLin = task.main(MLPtype='linear')
-outSin = task.main(MLPtype='sineee')
-outSqu = task.main(MLPtype='square')
-outSqS = task.main(MLPtype='sinsqu')
+#bx = fig.add_subplot(212)
+outLin = task.main(solver='lbfgs')
+outSin = task.main(solver='sgd')
+outSqu = task.main(solver='adam')
+#outSqS = task.main(survivalRate=0.125, numInitials=10, elitism=False)
 
 iteration = np.arange(50)
 ax.set_ylim(0,1.01)
+#bx.set_ylim(0,1.01)
 ax.set_ylabel('Score')
 ax.set_xlabel('Iteration')
-ax.plot(iteration, [sum(x)/len(x) for x in outLin['scoreList']], label="Linear")
-ax.plot(iteration, [sum(x)/len(x) for x in outSin['scoreList']], label="Sine")
-ax.plot(iteration, [sum(x)/len(x) for x in outSqu['scoreList']], label="Square")
-ax.plot(iteration, [sum(x)/len(x) for x in outSqS['scoreList']], label="Sine + Square")
+ax.plot(iteration, [sum(x)/len(x) for x in outLin['scoreList']], label="lbfgs")
+ax.plot(iteration, [sum(x)/len(x) for x in outSin['scoreList']], label="sgd")
+ax.plot(iteration, [sum(x)/len(x) for x in outSqu['scoreList']], label="adam")
+#bx.plot(iteration, [sum(x)/len(x) for x in outSqS['scoreList']], label="No Elitism")
 ax.legend(loc='best')
-plt.savefig('figures/Average Scores Transparent.png', transparent=True)
+#bx.legend(loc='best')
+ax.set_title('N=1000')
+#bx.set_title('N=10')
+plt.savefig('figures/Solver.png', transparent=True)
 plt.show()
