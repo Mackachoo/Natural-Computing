@@ -50,31 +50,40 @@ def createInitials(N):
     return initials
 
 
-#nws = createInitials(10)
-for i in range(20):
-    nws = [r.sample(range(1,8),(r.randint(1,7)))]
-    print(np.array(scores(nws, type='square')))
+##nws = createInitials(10)
+#for i in range(20):
+#    nws = [r.sample(range(1,8),(r.randint(1,7)))]
+#    print(np.array(scores(nws, type='square')))
+#
+#
+#outDefault = task.main()
+##Graphs3D(nwSets=outDefault['nwSets'], scoreList=outDefault['scoreList'], type=1, snap=True)
+##Graphs2D(scoreList=outDefault['scoreList'])
+#
+#fig = plt.figure(figsize=(30,15))
+#ax = fig.add_subplot(111)
+##outLin = task.main(MLPtype='linear')
+##outSin = task.main(MLPtype='square')
+##outSqu = task.main(MLPtype='sineee')
+##outSqS = task.main(MLPtype='sinsqu')
+#
+#iteration = np.arange(50)
+#ax.set_ylim(0,1.01)
+#ax.set_ylabel('Score')
+#ax.set_xlabel('Iteration')
+#ax.legend(loc='best')
+#ax.plot(iteration, [sum(x)/len(x) for x in outDefault['scoreList']], label="Avg")
+#ax.plot(iteration, [max(x) for x in outDefault['scoreList']], label="Max")
+#ax.plot(iteration, [min(x) for x in outDefault['scoreList']], label="Min")
+##ax.plot(iteration, [sum(x)/len(x) for x in outSqS['scoreList']], label="sqs")
+#plt.savefig('figures/Average Scores 1000.png', transparent=True)
+#plt.show()
 
+gpDict = {'activation':['i','l','t','r'], 'alpha':[1.0,0.1,0.01,0.001,0.0001], 'iterations':[1,2,3,4], 'type':['lin','squ','sin','sinsqu']}
 
-outDefault = task.main()
-#Graphs3D(nwSets=outDefault['nwSets'], scoreList=outDefault['scoreList'], type=1, snap=True)
-#Graphs2D(scoreList=outDefault['scoreList'])
+print(len(gpDict))
+for i in gpDict:
+    print(i)
 
-fig = plt.figure(figsize=(30,15))
-ax = fig.add_subplot(111)
-#outLin = task.main(MLPtype='linear')
-#outSin = task.main(MLPtype='square')
-#outSqu = task.main(MLPtype='sineee')
-#outSqS = task.main(MLPtype='sinsqu')
-
-iteration = np.arange(50)
-ax.set_ylim(0,1.01)
-ax.set_ylabel('Score')
-ax.set_xlabel('Iteration')
-ax.legend(loc='best')
-ax.plot(iteration, [sum(x)/len(x) for x in outDefault['scoreList']], label="Avg")
-ax.plot(iteration, [max(x) for x in outDefault['scoreList']], label="Max")
-ax.plot(iteration, [min(x) for x in outDefault['scoreList']], label="Min")
-#ax.plot(iteration, [sum(x)/len(x) for x in outSqS['scoreList']], label="sqs")
-plt.savefig('figures/Average Scores 1000.png', transparent=True)
-plt.show()
+abra = ['r',1,2,'lin',2,3,1]
+print(abra[0:])

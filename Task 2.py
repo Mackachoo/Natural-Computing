@@ -64,14 +64,14 @@ def crossover(nw1, nw2, cR):
     return [x for x in nw1 if x != 0], [x for x in nw2 if x != 0]
 
 
-def scores(nws, maxIt, type='lin'):
+def scores(nws, maxIt, sol, type='lin'):
     nwSc = []
     posTrain, valueTrain = createTestSpirals(1000,type)
     posTest, valueTest = createTestSpirals(1000,type)
     for nw in nws:
         with warnings.catch_warnings():
             warnings.filterwarnings('ignore', category=ConvergenceWarning, module='sklearn')
-            mlp = MLPClassifier(nw, max_iter=maxIt, solver='lbfgs', random_state=0, activation='tanh')
+            mlp = MLPClassifier(nw, max_iter=maxIt, solver=sol, random_state=0, activation='tanh')
             mlp.fit(posTrain,valueTrain)
             nwSc.append(mlp.score(posTest, valueTest))
     return list(zip(nws,nwSc))
@@ -113,14 +113,14 @@ def varianceCalc(scored):
 
 ### Main Program -------------------------------------------------------------------------
 
-def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=1000, survivalRate=0.5, elitism=True, maxMLPit=1, MLPtype='square',  oldSelect=False):
+def main(crossoverRate=0.7, mutationRate=0.01, iterations=50, numInitials=100, survivalRate=0.5, elitism=True, maxMLPit=1, MLPtype='square',  oldSelect=False, solver='lbfgs'):
     #log = "LOG FILE -------------------\n\n"
     networkSet = createInitials(numInitials)
     scoreList = []
     nwSets = [networkSet]
 
     for _ in tqdm(range(iterations)):
-        scored = scores(networkSet, maxMLPit, MLPtype)
+        scored = scores(networkSet, maxMLPit, solver, MLPtype)
         scoreList.append([x[1] for x in scored])
         if oldSelect:
             selected = oldSelection(scored, int(len(networkSet)*survivalRate), elitism)
